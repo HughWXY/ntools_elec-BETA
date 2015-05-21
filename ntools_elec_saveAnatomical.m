@@ -56,7 +56,7 @@ if ~isempty(elec_gs)
     [surf] = fs_calc_triarea(surf);
     surf.coords = surf.vertices;
     
-    PathName = fileparts(elec_text);
+    PathName = fileparts(elec_text); if isempty(PathName), PathName = '.'; end;
     cfg = [];
     cfg.subject = subj;
     cfg.surf= surf;
