@@ -1,26 +1,34 @@
-function [anatomical_text, EOI] = ntools_elec_saveAnatomical(subj,hemi,elec_bin,elec_text)
+function [anatomical_text, EOI] = ntools_elec_saveAnatomical(subj,hemi,elec_text,elec_bin)
 
 % paint the electrodes onto subject's pial surface and output the
 % anatomical regions (in percentage) where each electrode locates 
 %
-% Usage: ntools_elec_saveAnatomical(subj,hemi,elec_text)
+% Usage: ntools_elec_saveAnatomical(subj,hemi,elec_bin,elec_text)
 % default cortical parcellation: ?h.aparc.annot
 %
 % Input:
 % subj: subject ID in SUBJECTS_DIR
 % hemi: hemisphere
 % elec_text: subject electrode location file in T1 space
-% elec_bin: subject electrode nifti image
+% elec_bin: subject electrode nifti image (optional)
 %
 % Output:
 % cortical_text: anatomical regions of each electrode in percentage
 %
 % created by Hugh Wang, 3/11/2015, Xiuyuan.Wang@nyumc.org
 %
+% modified by Hugh Wang, 5/21/2015
+% make elec_bin optional to avoid wrong indexing when input text is hemi
+% splited
+%
+% to do:
+% add hemi info the electrode label 
 
 %% read in the text file and parse the G/S/D electrodes
 
 fprintf('\n%s\n',subj);
+
+if ~exist('elec_bin','var'), elec_bin = []; end % if no binary image input, just map the cortical electrodes
 
 fid = fopen(elec_text);
 elec_all = textscan(fid,'%s %f %f %f %s');
@@ -42,13 +50,15 @@ elec_depth = elec_cell(d,:);
 
 %% process with G/S
 
-PathName = fileparts(elec_text);
+PathName = fileparts(elec_text);if isempty(PathName), PathName = '.'; end;
 cfg = [];
 cfg.outdir = [PathName '/labels'];
     
 hippo_elec = cell(1);
 entorhinal_elec = cell(1);
 lateral_frontal_elec = cell(1);
+
+if strcmpi(hemi,'depth'), elec_gs = []; end % for both hemi, jump to depth part
 
 if ~isempty(elec_gs)
     % load pial surface
@@ -127,17 +137,31 @@ if ~isempty(elec_gs)
 end
 
 %% process depth electrodes 
-if ~isempty(elec_depth)
+if ~isempty(elec_depth) && ~isempty(elec_bin)
     hdr = ntools_elec_load_nifti(elec_bin);
     depth_row = find(d);
-
+    
+    % check the orientation of elec_bin
+    [~,msg] = unix(sprintf('mri_info %s',elec_bin));
+    orientation = regexp(msg,'Orientation\s+:\s+\w+','match');
+    if ~isempty(orientation)
+        orientation  = strtrim(orientation{1}(end-3:end));
+        if ~strcmpi(orientation,'RAS') && ~strcmpi(orientation,'LAS')
+            cont = input(sprintf('The orientation of the elec_bin is %s, this is unusual. Continue? [y/n]: ',...
+                orientation),'s');
+            if strcmpi(cont,'n'), return; end;
+        end
+    else
+        disp('orientation is not available. please check elec_bin image');
+        return;
+    end
+    
     % convert aseg
     aseg_mgz = [getenv('SUBJECTS_DIR'),subj,'/mri/aseg.mgz'];
     aseg_nii = [cfg.outdir,'/aseg.nii.gz'];
-    if ~exist(aseg_nii,'file')
-        [status,msg] = unix(sprintf('mri_convert --out_orientation LAS %s %s',aseg_mgz,aseg_nii));
-        if status, disp(msg); return; end;
-    end
+    [status,msg] = unix(sprintf('mri_convert --out_orientation %s %s %s',orientation,aseg_mgz,aseg_nii));
+    if status, disp(msg); return; end;
+
     aseg = ntools_elec_load_nifti(aseg_nii);
 
     [seg_idx, seg_name] = xlsread('/space/mdeh1/5/halgdev/projects/nyuproj/loc/Milan/aparc_aseg_idx_name.xlsx');
@@ -161,7 +185,9 @@ if ~isempty(elec_depth)
             hippo_elec(end+1) = elec_depth(k,1);
         end
         elec_depth(k,5) = cellstr(note);
-    end    
+    end 
+else
+    elec_depth = [];
 end
 
 %% save into text file
@@ -171,11 +197,12 @@ entorhinal_elec{1} = length(entorhinal_elec)-1;
 lateral_frontal_elec{1} = length(lateral_frontal_elec)-1;
 
 anatomical_text = [PathName,'/',subj,'_T1_',hemi,'_AnatomicalRegions.txt'];
-ntools_elec_savetxt(anatomical_text,[elec_gs;elec_depth]);
+elec_cell = [elec_gs;elec_depth];
+ntools_elec_savetxt(anatomical_text,elec_cell);
 
 fid = fopen(anatomical_text,'a');
 fprintf(fid,'\n');
-fprintf(fid,'%% Total number of electrodes %d\n',length(elec_cell));
+fprintf(fid,'%% Total number of electrodes %d\n',size(elec_cell,1));
 
 fprintf(fid,'%% Number of hippocampus electrodes %d\n',hippo_elec{1});
 fprintf(fid,'%% ');
