@@ -114,16 +114,25 @@ if ~status,
     scanner2tkr = -transform(1:3,4)'; % tkrRAS = scannerRAS + scanner2tkr
 end
 
-% transform scanner RAS to tkr surface RAS
+%% transform scanner RAS to tkr surface RAS
 tkrRAS = round(cell2mat(ini_elec_all(:,2:4))+ repmat(scanner2tkr,size(ini_elec_all,1),1));
 tkrRAS = num2cell(tkrRAS);
 ini_elec_all_tkrRAS = ini_elec_all;
 ini_elec_all_tkrRAS(:,2:4) = tkrRAS;
 
-% split elecs by type
+%% split elecs by type
 if 5 == size(ini_elec_all_tkrRAS,2)
-    g = strncmpi('G',ini_elec_all_tkrRAS(:,5),1);
-    d = strncmpi('D',ini_elec_all_tkrRAS(:,5),1);
+    metainfo = regexpi(ini_elec_all_tkrRAS(:,5),'(?<hemi>[LR])(?<type>[GSD])(?<number>\d*)','names');
+    hemi = cell(size(metainfo)); type = hemi; 
+    elecnum = hemi; % total number of electrodes in each G/S/D
+    for i=1:length(metainfo)
+        hemi(i) = {metainfo{i}.hemi};
+        type(i) = {metainfo{i}.type};
+        elecnum(i) = {metainfo{i}.number};
+    end
+    
+    g = strncmpi('G',type,1);
+    d = strncmpi('D',type,1);
 else
     g = strncmpi('G',ini_elec_all_tkrRAS(:,1),1);
     d = strncmpi('D',ini_elec_all_tkrRAS(:,1),1);
@@ -136,14 +145,14 @@ ini_strip_tkrRAS = ini_elec_all_tkrRAS;
 
 
 %% hemi
-hemi = menu('Electrodes on which hemisphere?','left hemi','right hemi','both hemi');
-if hemi==1
-    sph_s = 'lh'; fprintf('\nElectrodes are on Left hemisphere\n');
-elseif hemi==2
-    sph_s = 'rh'; fprintf('\nElectrodes are on Right hemisphere\n');
-else
-    sph_s = 'both'; fprintf('\nElectrodes are on Both hemispheres\n');
-end
+% hemi = menu('Electrodes on which hemisphere?','left hemi','right hemi','both hemi');
+% if hemi==1
+%     sph_s = 'lh'; fprintf('\nElectrodes are on Left hemisphere\n');
+% elseif hemi==2
+%     sph_s = 'rh'; fprintf('\nElectrodes are on Right hemisphere\n');
+% else
+%     sph_s = 'both'; fprintf('\nElectrodes are on Both hemispheres\n');
+% end
 
 %% Calculate the electrodes locations
 % outer-brain surface check and create

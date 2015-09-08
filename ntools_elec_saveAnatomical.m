@@ -8,7 +8,7 @@ function [anatomical_text, EOI] = ntools_elec_saveAnatomical(subj,hemi,elec_text
 %
 % Input:
 % subj: subject ID in SUBJECTS_DIR
-% hemi: hemisphere
+% hemi: hemisphere (lh rh or depth)
 % elec_text: subject electrode location file in T1 space
 % elec_bin: subject electrode nifti image (optional)
 %
@@ -87,9 +87,15 @@ if ~isempty(elec_gs)
     
     
     %%   
-    for i=1:length(elec_gs)
+    for i=1:size(elec_gs,1)
         note = [];
-        elec_nbrs = elec_label==elec_colortable.table(i,5);
+        % if only one electrode available, use the 2nd because it was
+        % overwritten in the annotation file
+        if size(elec_gs,1)==1
+            elec_nbrs = elec_label==elec_colortable.table(2,5);
+        else
+            elec_nbrs = elec_label==elec_colortable.table(i,5);
+        end
         
         % didn't find neighbours in the label, happens when the electrode share
         % the same location with others

@@ -66,7 +66,7 @@ vertex_list=[];
 %electrode RAS.  Include neighboring vertices to make electrode more
 %visible (though not consistent in size, can range from 5mm-12mm)
 
-for i=1:length(elec_coords)
+for i=1:size(elec_coords,1)
         b_z=abs(surf.coords(:,3)-elec_coords(i,3));
         b_y=abs(surf.coords(:,2)-elec_coords(i,2));
         b_x=abs(surf.coords(:,1)-elec_coords(i,1));
@@ -93,6 +93,14 @@ for i=1:length(elec_coords)
         fprintf(fidclut,'%g\t%s\t\t\t%3.3g\t%3.3g\t%3.3g\t0\n',...
             i-1,elec_names{i},round(255*rand(1)),round(255*rand(1)),round(255*rand(1)));       
 end
+
+% if only one electrode on the hemi, repeat it again in the CLUT file,
+% otherwise mris_label2annot will complain
+if size(elec_coords,1)==1
+   fprintf(fidclut,'%g\t%s\t\t\t%3.3g\t%3.3g\t%3.3g\t0\n',...
+            i,elec_names{i},round(255*rand(1)),round(255*rand(1)),round(255*rand(1)));
+end
+
 fclose(fidclut);
       
 %Issue command to convert labels to annotation file
