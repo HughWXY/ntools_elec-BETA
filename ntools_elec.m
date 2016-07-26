@@ -239,8 +239,8 @@ else
     aparc2 = [Subject_path,'/label/',sph_s,'.aparc.a2009s.annot'];
     copyfile(aparc,PathName,'f'); 
     copyfile(aparc2,PathName,'f');
-    NYU_ntools_elec_autoplot(fname_t1,surf_mat,aparc);
-    NYU_ntools_elec_autoplot(fname_t1,surf_mat,aparc2);
+    % NYU_ntools_elec_autoplot(fname_t1,surf_mat,aparc);
+    % NYU_ntools_elec_autoplot(fname_t1,surf_mat,aparc2);
     
     clear surf_brain
 end
